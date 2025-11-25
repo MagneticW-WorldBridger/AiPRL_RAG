@@ -89,7 +89,38 @@ else:
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
-    init_db()
+    """Initialize database and verify configuration on startup"""
+    try:
+        print("=" * 50)
+        print("Starting up RAG File Search Service...")
+        print(f"AUTH_BASE_URL: {settings.auth_base_url}")
+        print(f"DATABASE_URL: {'✓ Set' if settings.database_url else '✗ Missing'}")
+        print(f"GEMINI_API_KEY: {'✓ Set' if settings.gemini_api_key else '✗ Missing'}")
+        print("=" * 50)
+        
+        # Initialize database
+        init_db()
+        print("✓ Database initialized successfully")
+        
+        # Test database connection
+        from database import get_db
+        from sqlalchemy import text
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            # Simple query to test connection
+            db.execute(text("SELECT 1"))
+            print("✓ Database connection verified")
+        finally:
+            db.close()
+        
+        print("✓ Service startup complete")
+        print("=" * 50)
+    except Exception as e:
+        print(f"✗ Startup error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't raise - let the service start anyway, errors will be caught at request time
 
 
 # Pydantic models

@@ -60,13 +60,18 @@ def get_db():
 def init_db():
     """Initialize database tables"""
     engine = get_engine()
-    Base.metadata.create_all(bind=engine)
     
-    # Run migration to add new columns if needed
+    # Run migration which handles both fresh DB and updates
     try:
         from migrate_db import migrate_database
         migrate_database()
     except Exception as e:
-        print(f"Migration note: {e}")
-        # Migration is optional, continue if it fails
+        print(f"Migration error: {e}")
+        # Fallback: try to create tables directly
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("Created tables using fallback method")
+        except Exception as fallback_error:
+            print(f"Fallback also failed: {fallback_error}")
+            raise
 

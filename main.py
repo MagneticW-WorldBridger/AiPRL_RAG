@@ -89,6 +89,23 @@ else:
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
+    # Verify google-genai version and client initialization
+    try:
+        import google.genai as genai_module
+        version = getattr(genai_module, '__version__', 'unknown')
+        print(f"google-genai package version: {version}")
+        
+        # Test client initialization if API key is available
+        if settings.gemini_api_key:
+            test_client = genai_module.Client(api_key=settings.gemini_api_key)
+            if not hasattr(test_client, 'file_search_stores'):
+                print("ERROR: google-genai version is too old. File Search will not work.")
+                print("Please upgrade: pip install --upgrade 'google-genai>=1.50.0'")
+            else:
+                print("✓ File Search feature is available")
+    except Exception as e:
+        print(f"Warning: Could not verify google-genai setup: {e}")
+    
     init_db()
 
 

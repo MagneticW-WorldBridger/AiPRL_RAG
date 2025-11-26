@@ -9,8 +9,42 @@ import time
 
 class GeminiFileSearchClient:
     def __init__(self):
-        # Initialize the Gemini client with API key
-        self.client = genai.Client(api_key=settings.gemini_api_key)
+        # Don't initialize client here - do it lazily to ensure settings are loaded
+        self._client = None
+        self._api_key = None
+    
+    @property
+    def client(self):
+        """Lazy initialization of the Gemini client"""
+        if self._client is None:
+            api_key = settings.gemini_api_key
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY is not set in environment variables")
+            
+            # Initialize client
+            self._client = genai.Client(api_key=api_key)
+            
+            # Verify the client has the required attribute
+            if not hasattr(self._client, 'file_search_stores'):
+                # Try to get version info
+                try:
+                    import google.genai as genai_module
+                    version = getattr(genai_module, '__version__', 'unknown')
+                except:
+                    version = 'unknown'
+                
+                raise AttributeError(
+                    f"Client object does not have 'file_search_stores' attribute. "
+                    f"This usually means the google-genai package version is too old. "
+                    f"Please upgrade to version 1.50.0 or higher. "
+                    f"Current version: {version}. "
+                    f"Run: pip install --upgrade 'google-genai>=1.50.0'"
+                )
+            
+            self._api_key = api_key
+            print(f"Gemini client initialized successfully with file_search_stores support")
+        
+        return self._client
     
     def get_or_create_file_search_store(self, user_id: str, existing_store_name: Optional[str] = None) -> str:
         """Get or create a File Search Store for a user"""
